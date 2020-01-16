@@ -11,9 +11,11 @@ import (
 )
 
 type matplotlibFlags struct {
-	Duration   time.Duration
-	Prometheus string
-	Title      string
+	Duration            time.Duration
+	Step                string
+	MaxSourceResolution string
+	Title               string
+	Prometheus          string
 }
 
 var matplotlibFlag matplotlibFlags
@@ -26,7 +28,7 @@ func matplotlibAction(c *cli.Context) error {
 	end := time.Now()
 	start := end.Add(-1 * matplotlibFlag.Duration)
 
-	results, err := Query(matplotlibFlag.Prometheus, start, end, c.Args().First())
+	results, err := Query(matplotlibFlag.Prometheus, start, end, c.Args().First(), matplotlibFlag.Step, matplotlibFlag.MaxSourceResolution)
 	if err != nil {
 		return err
 	}

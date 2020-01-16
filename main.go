@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/fatih/color"
@@ -22,6 +23,27 @@ func main() {
 			Usage:       "The duration to get timeseries from",
 			Value:       time.Hour,
 			Destination: &flag.Duration,
+		},
+		cli.StringFlag{
+			Name:        "step",
+			Usage:       "The stepSize to get timeseries from",
+			Destination: &flag.Step,
+		},
+		cli.StringFlag{
+			Name:        "max_source_resolution",
+			Usage:       "Can be auto|0s|5m|1h auto will be default",
+			Value:       "auto",
+			Destination: &flag.MaxSourceResolution,
+		},
+		cli.StringFlag{
+			Name:        "start",
+			Usage:       "The start time",
+			Destination: &flag.Start,
+		},
+		cli.StringFlag{
+			Name:        "end",
+			Usage:       "The end time",
+			Destination: &flag.End,
 		},
 		cli.BoolTFlag{
 			Name:        "header",
@@ -44,6 +66,16 @@ func main() {
 				Name:        "prometheus",
 				Value:       "http://localhost:9090",
 				Destination: &gnuplotFlag.Prometheus,
+			},
+			cli.StringFlag{
+				Name:        "step",
+				Usage:       "The stepSize to get timeseries from",
+				Destination: &gnuplotFlag.Step,
+			},
+			cli.StringFlag{
+				Name:        "max_source_resolution",
+				Usage:       "Can be auto|0s|5m|1h auto will be default",
+				Destination: &gnuplotFlag.MaxSourceResolution,
 			},
 			cli.DurationFlag{
 				Name:        "duration,d",
@@ -74,6 +106,16 @@ func main() {
 				Destination: &matplotlibFlag.Duration,
 			},
 			cli.StringFlag{
+				Name:        "step",
+				Usage:       "The stepSize to get timeseries from",
+				Destination: &matplotlibFlag.Step,
+			},
+			cli.StringFlag{
+				Name:        "max_source_resolution",
+				Usage:       "Can be auto|0s|5m|1h auto will be default",
+				Destination: &matplotlibFlag.MaxSourceResolution,
+			},
+			cli.StringFlag{
 				Name:        "title",
 				Usage:       "Give the gnuplot graph a title",
 				Destination: &matplotlibFlag.Title,
@@ -87,9 +129,13 @@ func main() {
 }
 
 type flags struct {
-	Duration   time.Duration
-	Header     bool
-	Prometheus string
+	Duration            time.Duration
+	Step                string
+	MaxSourceResolution string
+	Header              bool
+	Prometheus          string
+	Start               string
+	End                 string
 }
 
 var flag flags
@@ -102,7 +148,23 @@ func exportAction(c *cli.Context) error {
 	end := time.Now()
 	start := end.Add(-1 * flag.Duration)
 
-	results, err := Query(flag.Prometheus, start, end, c.Args().First())
+	if len(flag.End) != 0 {
+		endTimestamp, err := strconv.ParseInt(flag.End, 10, 64)
+		if err != nil {
+			return fmt.Errorf(color.RedString("end value is invalid"))
+		}
+		end = time.Unix(endTimestamp, 0)
+	}
+
+	if len(flag.Start) != 0 {
+		startTimestamp, err := strconv.ParseInt(flag.Start, 10, 64)
+		if err != nil {
+			return fmt.Errorf(color.RedString("start value is invalid"))
+		}
+		start = time.Unix(startTimestamp, 0)
+	}
+
+	results, err := Query(flag.Prometheus, start, end, c.Args().First(), flag.Step, flag.MaxSourceResolution)
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,8 @@ type Result struct {
 	Values map[string]string
 }
 
-func Query(host string, start time.Time, end time.Time, query string) ([]Result, error) {
+func Query(host string, start time.Time, end time.Time, query string, step string, max_source_resolution string) ([]Result, error) {
+
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err
@@ -39,11 +40,20 @@ func Query(host string, start time.Time, end time.Time, query string) ([]Result,
 	q.Set("start", fmt.Sprintf("%d", start.Unix()))
 	q.Set("end", fmt.Sprintf("%d", end.Unix()))
 	q.Set("step", fmt.Sprintf("%d", steps(end.Sub(start))))
+
+	if len(step) > 0 {
+		q.Set("step", step)
+	}
+
+	if len(max_source_resolution) > 0 {
+		q.Set("max_source_resolution", max_source_resolution)
+	}
+
 	u.RawQuery = q.Encode()
 
 	response, err := http.Get(u.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error on get: %s", err)
 	}
 	defer response.Body.Close()
 
@@ -71,9 +81,13 @@ func Query(host string, start time.Time, end time.Time, query string) ([]Result,
 
 		values := make(map[string]string)
 		for _, vals := range res.Values {
-			timestamp := vals[0].(float64)
+
+			// tbd. define timestamp format
+			//timestamps := vals[0].(float64)
+
+			timestamp := time.Unix(int64(vals[0].(float64)), 0)
 			value := vals[1].(string)
-			values[fmt.Sprintf("%.f", timestamp)] = value
+			values[fmt.Sprintf("%s", timestamp)] = value
 		}
 		r.Values = values
 

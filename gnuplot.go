@@ -11,9 +11,11 @@ import (
 )
 
 type gnuplotFlags struct {
-	Duration   time.Duration
-	Prometheus string
-	Title      string
+	Duration            time.Duration
+	Step                string
+	Prometheus          string
+	Title               string
+	MaxSourceResolution string
 }
 
 var gnuplotFlag gnuplotFlags
@@ -26,7 +28,7 @@ func gnuplotAction(c *cli.Context) error {
 	end := time.Now()
 	start := end.Add(-1 * gnuplotFlag.Duration)
 
-	results, err := Query(gnuplotFlag.Prometheus, start, end, c.Args().First())
+	results, err := Query(gnuplotFlag.Prometheus, start, end, c.Args().First(), gnuplotFlag.Step, gnuplotFlag.MaxSourceResolution)
 	if err != nil {
 		return err
 	}
